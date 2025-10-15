@@ -21,7 +21,6 @@ class SignedDataForm(forms.Form):
             panel_form = PanelForm(signed_form.verified_data)
             if panel_form.is_valid():
                 # Success
-    Or wrap the FBV with ``debug_toolbar.decorators.signed_data_view``
     """
 
     salt = "django_debug_toolbar"
@@ -39,15 +38,14 @@ class SignedDataForm(forms.Form):
                 signing.Signer(salt=self.salt).unsign(self.cleaned_data["signed"])
             )
             return verified
-        except signing.BadSignature:
-            raise ValidationError("Bad signature")
+        except signing.BadSignature as exc:
+            raise ValidationError("Bad signature") from exc
 
     def verified_data(self):
         return self.is_valid() and self.cleaned_data["signed"]
 
     @classmethod
     def sign(cls, data):
-        items = sorted(data.items(), key=lambda item: item[0])
         return signing.Signer(salt=cls.salt).sign(
-            json.dumps({key: force_str(value) for key, value in items})
+            json.dumps({key: force_str(value) for key, value in data.items()})
         )
